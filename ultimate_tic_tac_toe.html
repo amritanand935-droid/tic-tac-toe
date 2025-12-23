@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ultimate Tic Tac Toe</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #141e30, #243b55);
+  color: white;
+  text-align: center;
+  margin: 0;
+}
+
+h1 { margin-top: 15px; }
+
+.controls {
+  margin: 10px;
+}
+
+select, button {
+  padding: 8px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: none;
+  margin: 5px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 90px);
+  gap: 10px;
+  justify-content: center;
+  margin: 20px auto;
+}
+
+.cell {
+  width: 90px;
+  height: 90px;
+  font-size: 40px;
+  border-radius: 12px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s;
+}
+
+.cell:hover { transform: scale(1.08); }
+
+.status { font-size: 18px; }
+
+.score { margin-top: 10px; }
+</style>
+</head>
+
+<body>
+
+<h1>Ultimate Tic Tac Toe 🎮</h1>
+
+<div class="controls">
+  Mode:
+  <select id="mode">
+    <option value="ai">Player vs AI</option>
+    <option value="pvp">2 Player</option>
+  </select>
+
+  Difficulty:
+  <select id="difficulty">
+    <option value="easy">Easy</option>
+    <option value="medium">Medium</option>
+    <option value="hard">Hard (Unbeatable)</option>
+  </select>
+</div>
+
+<p class="status" id="status">Player X's turn</p>
+
+<div class="board" id="board"></div>
+
+<div class="score">
+  ❌ X: <span id="xScore">0</span> |
+  ⭕ O: <span id="oScore">0</span> |
+  🤝 Draws: <span id="dScore">0</span>
+</div>
+
+<button onclick="resetGame()">Restart</button>
+
+<script>
+const boardEl = document.getElementById("board");
+const statusEl = document.getElementById("status");
+const modeEl = document.getElementById("mode");
+const diffEl = document.getElementById("difficulty");
+
+let board, currentPlayer, gameActive = true;
+let xScore = 0, oScore = 0, dScore = 0;
+
+const winCombos = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+function startGame() {
+  board = Array(9).fill("");
+  currentPlayer = "X";
+  gameActive = true;
+  statusEl.textContent = "Player X's turn";
+  boardEl.innerHTML = "";
+  board.forEach((_, i) => {
+    const cell = document.createElement("button");
+    cell.className = "cell";
+    cell.onclick = () => handleMove(i);
+    boardEl.appendChild(cell);
+  });
+}
+
+function handleMove(i) {
+  if (!gameActive || board[i]) return;
+  board[i] = currentPlayer;
+  boardEl.children[i].textContent = currentPlayer;
+
+  if (checkWin(currentPlayer)) return endGame(currentPlayer + " wins!");
+  if (board.every(c => c)) return endGame("Draw");
+
+  currentPlayer = currentPlayer === "X" ? "O" : "X";
+  statusEl.textContent = "Player " + currentPlayer + "'s turn";
+
+  if (modeEl.value === "ai" && currentPlayer === "O") {
+    setTimeout(aiMove, 400);
+  }
+}
+
+function aiMove() {
+  let move;
+  if (diffEl.value === "easy") move = randomMove();
+  else if (diffEl.value === "medium") move = Math.random() > 0.5 ? bestMove() : randomMove();
+  else move = bestMove();
+  handleMove(move);
+}
+
+function randomMove() {
+  const empty = board.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+  return empty[Math.floor(Math.random()*empty.length)];
+}
+
+function bestMove() {
+  let bestScore = -Infinity, move;
+  board.forEach((v,i)=>{
+    if (!v) {
+      board[i] = "O";
+      let score = minimax(board, 0, false);
+      board[i] = "";
+      if (score > bestScore) { bestScore = score; move = i; }
+    }
+  });
+  return move;
+}
+
+function minimax(b, depth, isMax) {
+  if (checkWinner("O", b)) return 10 - depth;
+  if (checkWinner("X", b)) return depth - 10;
+  if (b.every(v=>v)) return 0;
+
+  let best = isMax ? -Infinity : Infinity;
+  b.forEach((v,i)=>{
+    if (!v) {
+      b[i] = isMax ? "O" : "X";
+      let score = minimax(b, depth+1, !isMax);
+      b[i] = "";
+      best = isMax ? Math.max(best, score) : Math.min(best, score);
+    }
+  });
+  return best;
+}
+
+function checkWinner(p, b = board) {
+  return winCombos.some(c => c.every(i => b[i] === p));
+}
+
+function checkWin(p) {
+  if (checkWinner(p)) {
+    p === "X" ? xScore++ : oScore++;
+    updateScore();
+    gameActive = false;
+    statusEl.textContent = p + " wins!";
+    return true;
+  }
+}
+
+function endGame(msg) {
+  if (msg === "Draw") { dScore++; statusEl.textContent = "It's a draw!"; }
+  updateScore();
+  gameActive = false;
+}
+
+function updateScore() {
+  document.getElementById("xScore").textContent = xScore;
+  document.getElementById("oScore").textContent = oScore;
+  document.getElementById("dScore").textContent = dScore;
+}
+
+function resetGame() { startGame(); }
+
+startGame();
+</script>
+
+</body>
+</html>
